@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage-kr
+  namespace: backstage-kr
+  labels:
+    app.kubernetes.io/name: backstage-kr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backstage-kr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backstage-kr
+    spec:
+      containers:
+        - name: backstage
+          image: nginx:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7007
