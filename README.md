@@ -1,13 +1,20 @@
 # SAMJOYAP GitOps Repository
 
-This repository stores Kubernetes manifests for application deployment.
+This repository stores GitOps deployment state for apps.
 
 ## Layout
 
-- `apps/node-express/manifests/deployment.yaml`
-- `apps/java-spring/manifests/deployment.yaml`
-- `apps/backstage-kr/manifests/deployment.yaml`
-- `apps/*/manifests/{namespace,service,ingress}.yaml`
+- `apps/node-express/`
+  - `kustomization.yaml`
+  - `manifests/{namespace,service,deployment,ingress}.yaml`
+- `apps/java-spring/`
+  - `kustomization.yaml`
+  - `manifests/{namespace,service,deployment,ingress}.yaml`
+- `apps/backstage-kr/`
+  - `values.yaml`
+  - `values-kr.yaml`
+  - `kustomization.yaml`
+  - `manifests/{external-secrets,k8s-config-secret}.yaml`
 
 ## CD update targets
 
@@ -15,9 +22,11 @@ Application repositories should update only these files:
 
 - `apps/node-express/manifests/deployment.yaml`
 - `apps/java-spring/manifests/deployment.yaml`
-- `apps/backstage-kr/manifests/deployment.yaml`
+- `apps/backstage-kr/values-kr.yaml`
 
-The CD workflow should replace the `image:` field in each deployment and open a PR to this repository.
+- Node/Java CD replaces Deployment `image:`.
+- Backstage CD replaces `backstage.image.registry/repository/tag`.
+- All updates are applied via PR (auto-merge).
 
 ## Argo CD source
 
