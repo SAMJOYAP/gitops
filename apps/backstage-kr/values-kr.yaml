@@ -1,0 +1,13 @@
+ingress:
+  tls:
+    secretName: "backstage-kr-server-tls"
+backstage:
+  appConfig:
+    app:
+      title: ALREADY11 Backstage
+    organization:
+      name: ALREADY11
+  image:
+    registry: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com
+    repository: backstage-app
+    tag: 1.0.1
