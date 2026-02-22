@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com/node-server:1.0.0
+          image: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com/node-server:1.0.1-1-gc70812d
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
