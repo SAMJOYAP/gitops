@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: node-server
+  namespace: node-server
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: node-server.sesac.already11.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: node-server
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - node-server.sesac.already11.cloud
+      secretName: node-server-tls
