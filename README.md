@@ -1,8 +1,8 @@
-# SAMJOYAP GitOps Repository
+# SAMJOYAP GitOps 저장소
 
-This repository stores GitOps deployment state for apps.
+이 저장소는 애플리케이션의 GitOps 배포 상태를 관리합니다.
 
-## Layout
+## 디렉터리 구조
 
 - `apps/node-express/`
   - `kustomization.yaml`
@@ -16,32 +16,32 @@ This repository stores GitOps deployment state for apps.
   - `kustomization.yaml`
   - `manifests/{external-secrets,k8s-config-secret}.yaml`
 
-## CD update targets
+## CD 업데이트 대상
 
-Application repositories should update only these files:
+애플리케이션 저장소 CD는 아래 파일만 업데이트해야 합니다.
 
 - `apps/node-express/manifests/deployment.yaml`
 - `apps/java-spring/manifests/deployment.yaml`
 - `apps/backstage-kr/values-kr.yaml`
 
-- Node/Java CD replaces Deployment `image:`.
-- Backstage CD replaces `backstage.image.registry/repository/tag`.
-- All updates are applied via PR (auto-merge).
+- Node/Java CD는 Deployment의 `image:`를 교체합니다.
+- Backstage CD는 `backstage.image.registry/repository/tag`를 교체합니다.
+- 모든 변경은 PR 기반으로 반영됩니다(auto-merge).
 
-## Argo CD source
+## Argo CD 소스
 
-Use this repository as Argo CD source.
+Argo CD의 소스로 이 저장소를 사용합니다.
 
-Recommended paths:
+권장 경로:
 
-- Single app deployment:
+- 단일 앱 배포:
   - `apps/node-express`
   - `apps/java-spring`
   - `apps/backstage-kr`
-- Deploy both apps:
+- 전체 앱 배포:
   - `apps`
 
-## Hosts
+## 호스트
 
 - `https://node-express.sesac.already11.cloud`
 - `https://java-spring.sesac.already11.cloud`
