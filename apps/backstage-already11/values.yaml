@@ -46,6 +46,12 @@ backstage:
       name: CNOE
     backend:
       baseUrl: ${BACKSTAGE_FRONTEND_URL}
+      auth:
+        externalAccess:
+          - type: static
+            options:
+              token: ${BACKSTAGE_API_TOKEN}
+              subject: github-actions
       csp:
         connect-src: ['self', 'http:', 'https:']
       cors:
