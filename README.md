@@ -95,3 +95,27 @@ Argo CD의 소스로 이 저장소를 사용합니다.
 운영 주의:
 - `backstage-env-vars`는 DB 비밀번호(`POSTGRES_PASSWORD`)도 포함하므로
   Secret 재생성/수동 패치 시 DB 인증 불일치가 나지 않도록 주의해야 함.
+
+### 5) Argo CD RBAC 운영 경계 (중요)
+
+- 이 저장소는 애플리케이션 배포 상태를 관리하며,
+  Argo CD 컨트롤 플레인 자체(`argocd-rbac-cm`)는 직접 소유하지 않는다.
+- 따라서 Backstage에서 Argo API를 안정적으로 사용하려면
+  Argo CD 운영 경로(Argo 설치/운영 레포 또는 클러스터 직접 적용)에서
+  아래 RBAC 정책을 별도로 반영해야 한다.
+
+예시 (`argocd-rbac-cm`의 `policy.csv`):
+
+```csv
+p, role:backstage, applications, get, */*, allow
+p, role:backstage, applications, list, */*, allow
+p, role:backstage, projects, get, *, allow
+p, role:backstage, projects, list, *, allow
+p, role:backstage, clusters, get, *, allow
+p, role:backstage, clusters, list, *, allow
+p, role:backstage, clusters, create, *, allow
+g, backstage, role:backstage
+```
+
+- 그리고 Backstage가 사용하는 Argo 토큰(`ARGOCD_AUTH_TOKEN`)이
+  위 role이 매핑된 계정 토큰과 일치해야 한다.
