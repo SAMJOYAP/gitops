@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-send
+  namespace: java-send
+  labels:
+    app.kubernetes.io/name: java-send
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: java-send
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: java-send
+    spec:
+      containers:
+        - name: app
+          image: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com/java-send:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
