@@ -102,6 +102,9 @@ backstage:
         pullRequestBranchName: backstage-integration
       rules:
         - allow: [Component, System, API, Resource, Location, Template]
+      locations:
+        - type: url
+          target: https://github.com/SAMJOYAP/reference-implementation-aws/blob/main/templates/backstage/catalog-info.yaml
     kubernetes:
       serviceLocatorMethod:
         type: multiTenant
