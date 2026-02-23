@@ -11,9 +11,9 @@
     - `service.yaml`
     - `deployment.yaml`
     - `ingress.yaml` (옵션)
-- `apps/backstage-kr/` (Backstage 전용 values 기반)
+- `apps/backstage-already11/` (Backstage 전용 values 기반)
   - `values.yaml`
-  - `values-kr.yaml`
+  - `values-already11.yaml`
   - `kustomization.yaml`
   - `manifests/`
     - `external-secrets.yaml`
@@ -24,7 +24,7 @@
 애플리케이션 저장소 CD는 아래 파일만 업데이트해야 합니다.
 
 - `apps/<appname>/manifests/deployment.yaml`
-- `apps/backstage-kr/values-kr.yaml`
+- `apps/backstage-already11/values-already11.yaml`
 
 - 일반 앱 CD는 Deployment의 `image:`를 교체합니다.
 - Backstage CD는 `backstage.image.registry/repository/tag`를 교체합니다.
@@ -53,11 +53,11 @@ Argo CD의 소스로 이 저장소를 사용합니다.
 
 - 단일 앱 배포:
   - `apps/<appname>`
-  - `apps/backstage-kr`
+  - `apps/backstage-already11`
 - 전체 앱 배포:
   - `apps`
 
 ## 호스트
 
 - `https://<appname>.sesac.already11.cloud`
-- `https://backstage-kr.sesac.already11.cloud`
+- `https://bs.sesac.already11.cloud`
