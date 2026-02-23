@@ -61,3 +61,37 @@ Argo CD의 소스로 이 저장소를 사용합니다.
 
 - `https://<appname>.sesac.already11.cloud`
 - `https://bs.sesac.already11.cloud`
+
+## 최신 상태 메모 (2026-02-23)
+
+### 1) 앱 운영 기준
+
+- `backstage-kr` 대신 `backstage-already11`을 운영 기준 앱으로 사용한다.
+- GitOps 경로는 `apps/backstage-already11`로 고정해 관리한다.
+
+### 2) 템플릿 반영 경로
+
+- Backstage 템플릿(Node.js, Java) 한글화 및 EKS 선택 기능은
+  `reference-implementation-aws/templates/backstage` 소스 기준으로 관리한다.
+- 운영 UI에 반영되려면 Backstage 앱의 catalog source가 최신 템플릿 저장소를 가리켜야 한다.
+
+### 3) 반영 확인 포인트
+
+1. `apps/backstage-already11/values-already11.yaml` 이미지 태그 최신 여부
+2. Backstage 환경변수(`APP_CONFIG_*`)로 catalog location override 적용 여부
+3. Argo CD sync 완료 후 Template 화면에서 한글 문구/EKS Cluster 필드 노출 여부
+
+### 4) BACKSTAGE_API_TOKEN 연동 (2026-02-23)
+
+템플릿 자동 반영 워크플로우에서 Backstage Catalog API 인증을 위해 아래를 반영함:
+
+- `apps/backstage-already11/values.yaml`
+  - `backstage.appConfig.backend.auth.externalAccess` 추가
+  - 토큰 참조: `${BACKSTAGE_API_TOKEN}`
+- `apps/backstage-already11/manifests/external-secrets.yaml`
+  - `backstage-env-vars`에 `BACKSTAGE_API_TOKEN` 주입 매핑 추가
+  - source: `keycloak` secret store의 `keycloak-clients.BACKSTAGE_API_TOKEN`
+
+운영 주의:
+- `backstage-env-vars`는 DB 비밀번호(`POSTGRES_PASSWORD`)도 포함하므로
+  Secret 재생성/수동 패치 시 DB 인증 불일치가 나지 않도록 주의해야 함.
