@@ -179,3 +179,19 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
   }
 }
 ```
+
+## 신규 앱 도메인 접속 트러블슈팅 (2026-02-24)
+
+증상:
+- Ingress/Pod는 정상인데 신규 도메인 접속 실패
+- cert-manager `Challenge`가 `pending` 상태로 유지
+
+점검 포인트:
+1. Route53에 대상 도메인 `A/AAAA` 레코드 생성 여부
+2. `kubectl -n <ns> describe challenge`에서 `NXDOMAIN`/self-check 에러 확인
+3. 클러스터 내부 DNS 조회 확인(`nslookup <host>`)
+
+운영 조치:
+- DNS 레코드가 이미 존재하는데도 내부 조회가 `NXDOMAIN`이면
+  `kubectl -n kube-system rollout restart deployment coredns` 후 재확인
+- cert-manager 상태가 `Order valid`, `Certificate Ready=True`로 전환되면 HTTPS 접속 가능
