@@ -139,6 +139,7 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 
 - 파일: `.github/workflows/orphan-app-cleanup.yaml`
 - 트리거:
+  - 즉시 이벤트: `repository_dispatch (repo_deleted)`
   - 수동 실행(`workflow_dispatch`)
   - 스케줄 실행(UTC 18:30, KST 03:30)
 
@@ -147,17 +148,19 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 1. `apps/<app>` 디렉터리 기준으로 GitHub 저장소 존재 여부 확인
 2. 저장소가 없으면 orphan으로 판단
 3. GitOps에서 해당 `apps/<app>` 경로 및 `apps/kustomization.yaml` 항목 제거
-4. (선택) Argo CD Application 삭제
-5. (선택) ECR repository 삭제(`--force`)
+4. Argo CD Application 삭제
+5. ECR repository 삭제(`--force`)
+6. SonarQube project 삭제
 
-필수/선택 시크릿:
+필수 시크릿:
 
-- 선택: `ARGOCD_SERVER`, `ARGOCD_AUTH_TOKEN`
-  - 있으면 Argo CD API로 앱 삭제 실행
-- 선택: `AWS_ROLE_ARN_SEC_OPS`
-  - 있으면 ECR repository 삭제 실행
+- `ARGOCD_SERVER`, `ARGOCD_AUTH_TOKEN`
+- `AWS_ROLE_ARN_SEC_OPS`
+- `SONAR_HOST_URL`, `SONAR_TOKEN`
 
 운영 권장:
 
 - 최초에는 `dry_run=true`로 실행해 orphan 대상만 확인
 - 제외 앱은 `exclude_apps` 입력으로 관리(기본: `backstage-already11`)
+- 즉시 자동화를 원하면 조직/저장소 webhook에서 `repo_deleted` payload를
+  `repository_dispatch`로 전달하도록 구성

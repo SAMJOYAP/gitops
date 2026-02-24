@@ -1,12 +1,18 @@
 name: Orphan App Cleanup
 
 on:
+  repository_dispatch:
+    types: [repo_deleted]
   workflow_dispatch:
     inputs:
       repo_owner:
         description: "GitHub owner(org/user) to validate app repositories"
         required: false
         default: "SAMJOYAP"
+      app_name:
+        description: "특정 앱만 즉시 정리할 때 입력 (예: java-test)"
+        required: false
+        default: ""
       dry_run:
         description: "true면 삭제 없이 탐지만 수행"
         required: false
@@ -26,10 +32,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OWNER_INPUT: ${{ github.event.inputs.repo_owner }}
+      APP_INPUT: ${{ github.event.inputs.app_name }}
+      DISPATCH_OWNER: ${{ github.event.client_payload.repo_owner }}
+      DISPATCH_REPO: ${{ github.event.client_payload.repo_name }}
       DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
       EXCLUDE_INPUT: ${{ github.event.inputs.exclude_apps }}
       ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
       ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
       - name: Checkout
@@ -43,7 +54,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          OWNER="${OWNER_INPUT:-${GITHUB_REPOSITORY_OWNER}}"
+          OWNER="${OWNER_INPUT:-${DISPATCH_OWNER:-${GITHUB_REPOSITORY_OWNER}}}"
+          TARGET_APP="${APP_INPUT:-${DISPATCH_REPO:-}}"
           DRY_RUN="${DRY_RUN_INPUT:-false}"
           EXCLUDES="${EXCLUDE_INPUT:-backstage-already11}"
 
@@ -62,22 +74,35 @@ jobs:
             return 1
           }
 
-          for dir in apps/*; do
-            [ -d "$dir" ] || continue
-            app="$(basename "$dir")"
+          check_orphan() {
+            local app="$1"
 
             if is_excluded "$app"; then
-              continue
+              return 0
             fi
 
             if gh api "/repos/${OWNER}/${app}" >/dev/null 2>&1; then
               echo "KEEP $app"
-              continue
+              return 0
             fi
 
             echo "ORPHAN $app"
             echo "$app" >> .tmp/orphans.txt
-          done
+          }
+
+          if [ -n "$TARGET_APP" ]; then
+            if [ -d "apps/$TARGET_APP" ]; then
+              check_orphan "$TARGET_APP"
+            else
+              echo "Target app directory not found: apps/$TARGET_APP"
+            fi
+          else
+            for dir in apps/*; do
+              [ -d "$dir" ] || continue
+              app="$(basename "$dir")"
+              check_orphan "$app"
+            done
+          fi
 
           if [ -s .tmp/orphans.txt ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
@@ -102,19 +127,31 @@ jobs:
             done < .tmp/orphans.txt
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Remove orphan apps from GitOps repo
+      - name: Validate required cleanup secrets
         if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          while read -r app; do
-            [ -n "$app" ] || continue
-            git rm -r "apps/$app" || true
-            sed -i "/^[[:space:]]*-[[:space:]]*${app}[[:space:]]*$/d" apps/kustomization.yaml
-          done < .tmp/orphans.txt
+          for key in ARGOCD_SERVER ARGOCD_AUTH_TOKEN SONAR_HOST_URL SONAR_TOKEN; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required secret/env: $key"
+              exit 1
+            fi
+          done
+          if [ -z "${{ secrets.AWS_ROLE_ARN_SEC_OPS }}" ]; then
+            echo "Missing required secret: AWS_ROLE_ARN_SEC_OPS"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials for ECR cleanup
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_SEC_OPS }}
+          aws-region: ap-northeast-2
 
       - name: Delete Argo CD applications
-        if: steps.detect.outputs.found == 'true' && env.ARGOCD_SERVER != '' && env.ARGOCD_AUTH_TOKEN != ''
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -124,24 +161,18 @@ jobs:
             code="$(curl -k -sS -o /tmp/argocd-delete.out -w "%{http_code}" \
               -X DELETE \
               -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
-              "$url" || true)"
+              "$url")"
             if [ "$code" = "200" ] || [ "$code" = "204" ] || [ "$code" = "404" ]; then
               echo "Argo cleanup handled for ${app} (HTTP ${code})"
             else
-              echo "::warning::Argo cleanup failed for ${app} (HTTP ${code})"
+              echo "Argo cleanup failed for ${app} (HTTP ${code})"
               cat /tmp/argocd-delete.out || true
+              exit 1
             fi
           done < .tmp/orphans.txt
 
-      - name: Configure AWS credentials for ECR cleanup
-        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true' && secrets.AWS_ROLE_ARN_SEC_OPS != ''
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN_SEC_OPS }}
-          aws-region: ap-northeast-2
-
       - name: Delete ECR repositories
-        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true' && secrets.AWS_ROLE_ARN_SEC_OPS != ''
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -153,6 +184,39 @@ jobs:
             else
               echo "ECR repository not found: $app"
             fi
+          done < .tmp/orphans.txt
+
+      - name: Delete SonarQube projects
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r app; do
+            [ -n "$app" ] || continue
+            code="$(curl -sS -u "${SONAR_TOKEN}:" -o /tmp/sonar-delete.out -w "%{http_code}" \
+              -X POST "${SONAR_HOST_URL}/api/projects/delete?project=${app}")"
+            if [ "$code" = "200" ] || [ "$code" = "204" ]; then
+              echo "Deleted SonarQube project: $app"
+              continue
+            fi
+            if grep -Eqi "not found|could not find|does not exist" /tmp/sonar-delete.out; then
+              echo "SonarQube project not found: $app"
+              continue
+            fi
+            echo "SonarQube cleanup failed for ${app} (HTTP ${code})"
+            cat /tmp/sonar-delete.out || true
+            exit 1
+          done < .tmp/orphans.txt
+
+      - name: Remove orphan apps from GitOps repo
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r app; do
+            [ -n "$app" ] || continue
+            git rm -r "apps/$app" || true
+            sed -i "/^[[:space:]]*-[[:space:]]*${app}[[:space:]]*$/d" apps/kustomization.yaml
           done < .tmp/orphans.txt
 
       - name: Commit and push cleanup changes
