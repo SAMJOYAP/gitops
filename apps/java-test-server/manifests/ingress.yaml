@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: java-test-server
+  namespace: java-test-server
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: java-test-server.sesac.already11.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: java-test-server
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - java-test-server.sesac.already11.cloud
+      secretName: java-test-server-tls
