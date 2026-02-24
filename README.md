@@ -165,3 +165,17 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 - 즉시 자동화를 원하면 조직/저장소 webhook에서 `repo_deleted` payload를
   `repository_dispatch`로 전달하도록 구성
 - webhook 미구성 환경에서도 스케줄(5분 주기)로 자동 정리됨
+
+### repository_dispatch payload 예시
+
+즉시 정리를 외부 시스템에서 트리거할 때:
+
+```json
+{
+  "event_type": "repo_deleted",
+  "client_payload": {
+    "repo_owner": "SAMJOYAP",
+    "repo_name": "java-test"
+  }
+}
+```
