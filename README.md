@@ -141,7 +141,7 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 - 트리거:
   - 즉시 이벤트: `repository_dispatch (repo_deleted)`
   - 수동 실행(`workflow_dispatch`)
-  - 스케줄 실행(UTC 18:30, KST 03:30)
+  - 스케줄 실행(5분 주기)
 
 동작:
 
@@ -164,3 +164,4 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 - 제외 앱은 `exclude_apps` 입력으로 관리(기본: `backstage-already11`)
 - 즉시 자동화를 원하면 조직/저장소 webhook에서 `repo_deleted` payload를
   `repository_dispatch`로 전달하도록 구성
+- webhook 미구성 환경에서도 스케줄(5분 주기)로 자동 정리됨

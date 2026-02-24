@@ -22,7 +22,7 @@ on:
         required: false
         default: "backstage-already11"
   schedule:
-    - cron: "30 18 * * *"
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: write
