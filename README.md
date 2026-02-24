@@ -119,3 +119,15 @@ g, backstage, role:backstage
 
 - 그리고 Backstage가 사용하는 Argo 토큰(`ARGOCD_AUTH_TOKEN`)이
   위 role이 매핑된 계정 토큰과 일치해야 한다.
+
+### 6) Backstage CSP 운영 설정 (2026-02-24)
+
+Backstage 운영값은 `apps/backstage-already11/values.yaml`에서 관리한다.
+
+- 반영 항목:
+  - `backstage.appConfig.backend.csp.img-src`에 외부 아이콘 도메인 허용 추가
+  - 값: `['self', 'data:', 'https://cdn.simpleicons.org']`
+
+운영 주의:
+- CSP 변경은 Backstage 재배포(Argo CD sync) 후 적용된다.
+- 값 미반영 시 브라우저 콘솔에 `Content Security Policy` 이미지 차단 로그가 발생할 수 있다.
