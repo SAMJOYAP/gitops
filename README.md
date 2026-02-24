@@ -125,8 +125,9 @@ g, backstage, role:backstage
 Backstage 운영값은 `apps/backstage-already11/values.yaml`에서 관리한다.
 
 - 반영 항목:
-  - `backstage.appConfig.backend.csp.img-src`에 외부 아이콘 도메인 허용 추가
-  - 값: `['self', 'data:', 'https://cdn.simpleicons.org']`
+  - `backstage.appConfig.backend.csp.connect-src`: `["'self'", "http:", "https:"]`
+  - `backstage.appConfig.backend.csp.img-src`: `["'self'", "data:", "https://cdn.simpleicons.org", "https://a0.awsstatic.com"]`
+  - `self` 토큰은 반드시 `"'self'"` 형태로 지정해야 same-origin 이미지(예: favicon)가 차단되지 않음
 
 운영 주의:
 - CSP 변경은 Backstage 재배포(Argo CD sync) 후 적용된다.
