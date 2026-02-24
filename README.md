@@ -132,3 +132,32 @@ Backstage 운영값은 `apps/backstage-already11/values.yaml`에서 관리한다
 운영 주의:
 - CSP 변경은 Backstage 재배포(Argo CD sync) 후 적용된다.
 - 값 미반영 시 브라우저 콘솔에 `Content Security Policy` 이미지 차단 로그가 발생할 수 있다.
+
+## Orphan 정리 자동화 (2026-02-24)
+
+GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로우로 후속 정리를 자동화할 수 있다.
+
+- 파일: `.github/workflows/orphan-app-cleanup.yaml`
+- 트리거:
+  - 수동 실행(`workflow_dispatch`)
+  - 스케줄 실행(UTC 18:30, KST 03:30)
+
+동작:
+
+1. `apps/<app>` 디렉터리 기준으로 GitHub 저장소 존재 여부 확인
+2. 저장소가 없으면 orphan으로 판단
+3. GitOps에서 해당 `apps/<app>` 경로 및 `apps/kustomization.yaml` 항목 제거
+4. (선택) Argo CD Application 삭제
+5. (선택) ECR repository 삭제(`--force`)
+
+필수/선택 시크릿:
+
+- 선택: `ARGOCD_SERVER`, `ARGOCD_AUTH_TOKEN`
+  - 있으면 Argo CD API로 앱 삭제 실행
+- 선택: `AWS_ROLE_ARN_SEC_OPS`
+  - 있으면 ECR repository 삭제 실행
+
+운영 권장:
+
+- 최초에는 `dry_run=true`로 실행해 orphan 대상만 확인
+- 제외 앱은 `exclude_apps` 입력으로 관리(기본: `backstage-already11`)

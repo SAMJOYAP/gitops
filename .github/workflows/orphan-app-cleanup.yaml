@@ -1,0 +1,171 @@
+name: Orphan App Cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_owner:
+        description: "GitHub owner(org/user) to validate app repositories"
+        required: false
+        default: "SAMJOYAP"
+      dry_run:
+        description: "true면 삭제 없이 탐지만 수행"
+        required: false
+        default: "false"
+      exclude_apps:
+        description: "쉼표(,)로 구분한 제외 앱 목록"
+        required: false
+        default: "backstage-already11"
+  schedule:
+    - cron: "30 18 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      OWNER_INPUT: ${{ github.event.inputs.repo_owner }}
+      DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
+      EXCLUDE_INPUT: ${{ github.event.inputs.exclude_apps }}
+      ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+      ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve orphan apps
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OWNER="${OWNER_INPUT:-${GITHUB_REPOSITORY_OWNER}}"
+          DRY_RUN="${DRY_RUN_INPUT:-false}"
+          EXCLUDES="${EXCLUDE_INPUT:-backstage-already11}"
+
+          mkdir -p .tmp
+          : > .tmp/orphans.txt
+
+          is_excluded() {
+            local name="$1"
+            IFS=',' read -ra arr <<< "$EXCLUDES"
+            for item in "${arr[@]}"; do
+              item="$(echo "$item" | xargs)"
+              if [ "$item" = "$name" ]; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          for dir in apps/*; do
+            [ -d "$dir" ] || continue
+            app="$(basename "$dir")"
+
+            if is_excluded "$app"; then
+              continue
+            fi
+
+            if gh api "/repos/${OWNER}/${app}" >/dev/null 2>&1; then
+              echo "KEEP $app"
+              continue
+            fi
+
+            echo "ORPHAN $app"
+            echo "$app" >> .tmp/orphans.txt
+          done
+
+          if [ -s .tmp/orphans.txt ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Print orphan summary
+        if: steps.detect.outputs.found == 'true'
+        shell: bash
+        run: |
+          {
+            echo "## Orphan app candidates"
+            echo ""
+            echo "- Owner: \`${{ steps.detect.outputs.owner }}\`"
+            echo "- Dry run: \`${{ steps.detect.outputs.dry_run }}\`"
+            echo ""
+            while read -r app; do
+              [ -n "$app" ] && echo "- \`$app\`"
+            done < .tmp/orphans.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove orphan apps from GitOps repo
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r app; do
+            [ -n "$app" ] || continue
+            git rm -r "apps/$app" || true
+            sed -i "/^[[:space:]]*-[[:space:]]*${app}[[:space:]]*$/d" apps/kustomization.yaml
+          done < .tmp/orphans.txt
+
+      - name: Delete Argo CD applications
+        if: steps.detect.outputs.found == 'true' && env.ARGOCD_SERVER != '' && env.ARGOCD_AUTH_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r app; do
+            [ -n "$app" ] || continue
+            url="https://${ARGOCD_SERVER}/api/v1/applications/${app}?cascade=true"
+            code="$(curl -k -sS -o /tmp/argocd-delete.out -w "%{http_code}" \
+              -X DELETE \
+              -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
+              "$url" || true)"
+            if [ "$code" = "200" ] || [ "$code" = "204" ] || [ "$code" = "404" ]; then
+              echo "Argo cleanup handled for ${app} (HTTP ${code})"
+            else
+              echo "::warning::Argo cleanup failed for ${app} (HTTP ${code})"
+              cat /tmp/argocd-delete.out || true
+            fi
+          done < .tmp/orphans.txt
+
+      - name: Configure AWS credentials for ECR cleanup
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true' && secrets.AWS_ROLE_ARN_SEC_OPS != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_SEC_OPS }}
+          aws-region: ap-northeast-2
+
+      - name: Delete ECR repositories
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true' && secrets.AWS_ROLE_ARN_SEC_OPS != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r app; do
+            [ -n "$app" ] || continue
+            if aws ecr describe-repositories --repository-names "$app" >/dev/null 2>&1; then
+              aws ecr delete-repository --repository-name "$app" --force
+              echo "Deleted ECR repository: $app"
+            else
+              echo "ECR repository not found: $app"
+            fi
+          done < .tmp/orphans.txt
+
+      - name: Commit and push cleanup changes
+        if: steps.detect.outputs.found == 'true' && steps.detect.outputs.dry_run != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No git changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps
+          git commit -m "chore(gitops): cleanup orphan apps"
+          git push
