@@ -195,3 +195,12 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 - DNS 레코드가 이미 존재하는데도 내부 조회가 `NXDOMAIN`이면
   `kubectl -n kube-system rollout restart deployment coredns` 후 재확인
 - cert-manager 상태가 `Order valid`, `Certificate Ready=True`로 전환되면 HTTPS 접속 가능
+
+## 최신 운영 메모 (2026-02-24)
+
+- 신규 앱(`java-sec-test`) 배포 기준 점검 완료:
+  - Pod/Service/Ingress 정상
+  - cert-manager 인증서 `Ready=True`
+  - HTTPS 응답 `200` 확인
+- 후속 운영 목표:
+  - 비허브 EKS에서도 동일한 배포/도메인 접속 검증 절차를 표준화
