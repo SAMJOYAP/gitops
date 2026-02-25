@@ -162,6 +162,7 @@ jobs:
             code="$(curl -k -sS -o /tmp/argocd-delete.out -w "%{http_code}" \
               -X DELETE \
               -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
+              -H "Content-Type: application/json" \
               "$url")"
             if [ "$code" = "200" ] || [ "$code" = "204" ] || [ "$code" = "404" ]; then
               echo "Argo cleanup handled for ${app} (HTTP ${code})"
