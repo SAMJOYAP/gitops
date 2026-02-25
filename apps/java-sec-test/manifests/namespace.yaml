@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: java-sec-test
-  labels:
-    app.kubernetes.io/name: java-sec-test
