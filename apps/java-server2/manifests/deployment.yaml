@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-server2
+  namespace: java-server2
+  labels:
+    app.kubernetes.io/name: java-server2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: java-server2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: java-server2
+    spec:
+      containers:
+        - name: app
+          image: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com/java-server2:d688bf0039799c56eaedde8d0d92d34c7ebefb69
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
