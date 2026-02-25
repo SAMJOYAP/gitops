@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ergerh
+  namespace: ergerh
+  labels:
+    app.kubernetes.io/name: ergerh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ergerh
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ergerh
+    spec:
+      containers:
+        - name: app
+          image: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com/ergerh@sha256:c6bbb1bd12b37f89df908cb48e6b407be0be9a649281aaf30df58f695f508774
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
