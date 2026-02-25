@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-test
+  namespace: test-test
+  labels:
+    app.kubernetes.io/name: test-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-test
+    spec:
+      containers:
+        - name: app
+          image: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com/test-test@sha256:ee27914d63e875c92f3758324ecc71349b9bb3741fd36677ec81c1e78db90764
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
