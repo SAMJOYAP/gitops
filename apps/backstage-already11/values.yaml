@@ -54,7 +54,7 @@ backstage:
               subject: github-actions
       csp:
         connect-src: ["'self'", 'http:', 'https:']
-        img-src: ["'self'", 'data:', 'https://cdn.simpleicons.org', 'https://a0.awsstatic.com']
+        img-src: ["'self'", 'data:', 'https://cdn.simpleicons.org', 'https://icon.icepanel.io']
       cors:
         origin: ${BACKSTAGE_FRONTEND_URL}
         methods: [GET, HEAD, PATCH, POST, PUT, DELETE]

@@ -204,3 +204,28 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
   - HTTPS 응답 `200` 확인
 - 후속 운영 목표:
   - 비허브 EKS에서도 동일한 배포/도메인 접속 검증 절차를 표준화
+
+## 최신 운영 메모 (2026-02-25)
+
+### 1) 비허브 EKS Ingress class 정합성
+
+- `ALREADY11-EKS` 같은 비허브 클러스터는 `IngressClass=alb` 기준으로 동작한다.
+- `ingressClassName: nginx`가 들어간 앱은 admission 단계에서 실패할 수 있다.
+- 운영 기준:
+  - 허브 클러스터: `nginx` 경로
+  - 비허브 클러스터: `alb` 경로
+
+### 2) Argo OutOfSync/Missing 시 우선 확인 포인트
+
+- `kubectl --context sesac-ref-impl -n argocd describe applications.argoproj.io <app>`
+- 실패 메시지에서 실제 차단 주체를 먼저 확인:
+  - IngressClass 미존재
+  - Admission webhook timeout
+  - 정책 검증 실패(예: kyverno)
+
+### 3) Kyverno 차단 시 해석
+
+- `Deployment` 생성 단계에서 `verify-cosign-signature`에 의해 차단될 수 있다.
+- CI 보안 파이프라인 성공과 클러스터 admission 성공은 별개 단계다.
+- 즉, `ECR push + cosign sign`이 완료되어도
+  클러스터 측 재검증 실패 시 Pod는 생성되지 않는다.
