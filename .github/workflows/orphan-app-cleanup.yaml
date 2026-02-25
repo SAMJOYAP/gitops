@@ -156,9 +156,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          server="${ARGOCD_SERVER#https://}"
+          server="${server#http://}"
+          server="${server%/}"
+          base="https://${server}"
+
+          # Fast-fail with clear diagnostics when the token cannot delete applications.
+          userinfo_code="$(curl -k -sS -o /tmp/argocd-userinfo.out -w "%{http_code}" \
+            -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
+            "${base}/api/v1/session/userinfo")"
+          if [ "${userinfo_code}" != "200" ]; then
+            echo "Argo token validation failed (userinfo HTTP ${userinfo_code})"
+            cat /tmp/argocd-userinfo.out || true
+            exit 1
+          fi
+          echo "Argo token subject:"
+          cat /tmp/argocd-userinfo.out || true
+
+          # Some Argo CD versions do not expose /account/can-i on REST.
+          # Keep the userinfo auth check above as hard gate, and rely on DELETE result for authorization.
+          cani_code="$(curl -k -sS -o /tmp/argocd-cani.out -w "%{http_code}" \
+            -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
+            "${base}/api/v1/account/can-i?resource=applications&action=delete&subresource=*/*")"
+          if [ "${cani_code}" = "200" ]; then
+            echo "Argo can-i response:"
+            cat /tmp/argocd-cani.out || true
+          else
+            echo "Argo can-i endpoint unavailable on this server (HTTP ${cani_code}); skipping can-i precheck."
+          fi
+
           while read -r app; do
             [ -n "$app" ] || continue
-            url="https://${ARGOCD_SERVER}/api/v1/applications/${app}?cascade=true"
+            url="${base}/api/v1/applications/${app}?cascade=true"
             code="$(curl -k -sS -o /tmp/argocd-delete.out -w "%{http_code}" \
               -X DELETE \
               -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
