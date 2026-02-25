@@ -166,6 +166,9 @@ jobs:
               "$url")"
             if [ "$code" = "200" ] || [ "$code" = "204" ] || [ "$code" = "404" ]; then
               echo "Argo cleanup handled for ${app} (HTTP ${code})"
+            elif [ "$code" = "403" ]; then
+              echo "::warning::Argo cleanup skipped for ${app} due to permission denied (HTTP 403)"
+              cat /tmp/argocd-delete.out || true
             else
               echo "Argo cleanup failed for ${app} (HTTP ${code})"
               cat /tmp/argocd-delete.out || true
