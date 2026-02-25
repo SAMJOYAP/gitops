@@ -150,3 +150,6 @@ postgresql:
   architecture: standalone
 serviceAccount:
   create: true
+  name: backstage-already11
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::710232982381:role/backstage-already11-irsa-role
