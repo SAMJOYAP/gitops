@@ -4,9 +4,10 @@ metadata:
   name: java-server2
   namespace: java-server2
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
 spec:
-  ingressClassName: nginx
+  ingressClassName: alb
   rules:
     - host: java-server2.sesac.already11.cloud
       http:
@@ -18,7 +19,3 @@ spec:
                 name: java-server2
                 port:
                   number: 80
-  tls:
-    - hosts:
-        - java-server2.sesac.already11.cloud
-      secretName: java-server2-tls
