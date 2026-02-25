@@ -229,3 +229,26 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 - CI 보안 파이프라인 성공과 클러스터 admission 성공은 별개 단계다.
 - 즉, `ECR push + cosign sign`이 완료되어도
   클러스터 측 재검증 실패 시 Pod는 생성되지 않는다.
+
+## 최신 운영 메모 (2026-02-25 추가)
+
+### 1) backstage-already11 IRSA 적용
+
+- 파일:
+  - `apps/backstage-already11/values.yaml`
+  - `apps/backstage-already11/values-already11.yaml`
+- 반영:
+  - `serviceAccount.name: backstage-already11`
+  - `eks.amazonaws.com/role-arn` annotation 추가
+- 목적:
+  - Backstage backend의 ACM/EKS 조회 시 AWS 인증을 IRSA로 처리
+
+### 2) ACM 선택 기반 템플릿 UX 운영 기준
+
+- 템플릿 입력은 `네트워크 옵션`에서 다음 순서로 처리:
+  1. ACM 인증서 도메인 선택
+  2. 호스트 접두사 입력
+- `baseDomain` 직접 입력은 제거되었고, 호스트 도메인은 `already11.cloud` 기준으로 생성됨
+- 운영 체크:
+  - Ingress host는 `접두사.already11.cloud`
+  - 선택한 ACM 도메인(`*.already11.cloud`)과 suffix 정합성 확인 필요
