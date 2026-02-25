@@ -252,3 +252,20 @@ GitHub에서 애플리케이션 저장소가 삭제되면, 아래 워크플로�
 - 운영 체크:
   - Ingress host는 `접두사.already11.cloud`
   - 선택한 ACM 도메인(`*.already11.cloud`)과 suffix 정합성 확인 필요
+
+### 3) IRSA 역할 실존 확인 필수
+
+- ServiceAccount annotation에 role ARN이 있어도 IAM Role이 실제로 없으면 인증은 실패한다.
+- 운영 체크:
+  - `aws iam get-role --role-name <role>` 성공 여부
+  - Role trust policy의 OIDC/sub/aud 정합성
+  - Pod 내부 `aws sts get-caller-identity` 성공 여부
+
+### 4) HTTPS 장애 시 우선 판별
+
+- `http`로만 접속된다고 느껴질 때는 먼저 Ingress 설정을 확인:
+  - `alb.ingress.kubernetes.io/listen-ports`에 HTTPS(443) 포함 여부
+  - `alb.ingress.kubernetes.io/ssl-redirect: '443'` 여부
+  - `alb.ingress.kubernetes.io/certificate-arn`의 SAN이 host와 일치하는지
+- 결론:
+  - 설정이 있어도 인증서 도메인 미스매치면 실제 HTTPS 접속은 실패 가능
