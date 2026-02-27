@@ -10,7 +10,7 @@ backstage:
   image:
     registry: 710232982381.dkr.ecr.ap-northeast-2.amazonaws.com
     repository: backstage-already11
-    tag: 1.0.2-4c8792c
+    tag: 1.0.2-7885cc6
 serviceAccount:
   name: backstage-already11
   annotations:
